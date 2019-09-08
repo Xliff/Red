@@ -41,6 +41,12 @@ multi method translate(Red::AST::Delete $_, $context?, :$gambi where !*.defined)
     self.Red::Driver::CommonSQL::translate($_, $context, :gambi);
 }
 
+multi method translate(Red::AST::DropTable $_, $context?) {
+  "DROP{ " TEMPORARY" if .temp } TABLE IF EXISTS {
+      .name
+  }";
+}
+
 multi method translate(Red::AST::Insert $_, $context?) {
     my Int $*bind-counter;
     my @values = .values.grep({ .value.value.defined });

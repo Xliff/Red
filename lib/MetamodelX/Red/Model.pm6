@@ -238,6 +238,13 @@ multi method create-table(\model) {
     True
 }
 
+method remove-table(\model) {
+    # Check for foreign referencing this table. Throw error if any exist.
+    $*RED-DB.execute:
+      Red::AST::DropTable.new:
+        :name(model.^table);
+}
+
 method apply-row-phasers($obj, Mu:U $phase ) {
     for $obj.^methods.grep($phase) -> $meth {
         $obj.$meth();
