@@ -1,6 +1,31 @@
 Red::ResultSeq
 --------------
 
+
+
+Class that represents a Seq of query results
+
+### sub comment-sql
+
+```perl6
+sub comment-sql(
+    :$meth-name,
+    :$file,
+    :$block,
+    :$line
+) returns Mu
+```
+
+Add a comment to SQL query
+
+### method of
+
+```perl6
+method of() returns Mu
+```
+
+The type of the ResultSeq
+
 ### method Seq
 
 ```perl6
@@ -14,7 +39,7 @@ Returns a Seq with the result of the SQL query
 ```perl6
 method grep(
     &filter
-) returns Red::ResultSeq
+) returns Mu
 ```
 
 Adds a new filter on the query (does not run the query)
@@ -34,7 +59,7 @@ Changes the query to return only the first row that matches the condition and ru
 ```perl6
 method map(
     &filter
-) returns Red::ResultSeq
+) returns Mu
 ```
 
 Change what will be returned (does not run the query)
@@ -69,6 +94,22 @@ method classify(
 ```
 
 Returns a ResultAssociative classified by the passed code (does not run the query)
+
+### method Bag
+
+```perl6
+method Bag() returns Mu
+```
+
+Runs a query to create a Bag
+
+### method Set
+
+```perl6
+method Set() returns Mu
+```
+
+Runs a query to create a Set
 
 ### method head
 
@@ -124,6 +165,16 @@ method create(
 
 Creates a new element of that set
 
+### method push
+
+```perl6
+method push(
+    *%pars
+) returns Mu
+```
+
+Alias for `create`
+
 ### method delete
 
 ```perl6
@@ -169,4 +220,37 @@ method minus(
 ```
 
 Removes 1 ResultSeq elements from other ResultSeq
+
+### method join
+
+```perl6
+method join(
+    $sep
+) returns Mu
+```
+
+Join (Positional join)
+
+### method join-model
+
+```perl6
+method join-model(
+    Red::Model \model,
+    &on,
+    :$name = { ... },
+    *%pars where { ... }
+) returns Mu
+```
+
+Create a custom join (SQL join)
+
+### method ast
+
+```perl6
+method ast(
+    Bool :$sub-select
+) returns Red::AST
+```
+
+Returns the AST that will generate the SQL
 

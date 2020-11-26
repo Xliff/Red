@@ -1,4 +1,5 @@
 use v6;
+use Red::Do;
 use Red::Model;
 use Red::Attr::Column;
 use Red::Column;
@@ -18,10 +19,14 @@ use Red::AST::Optimizer::OR;
 use Red::AST::Optimizer::Case;
 use Red::Class;
 use Red::DB;
+use Red::Schema;
+use Red::Formater;
 
-class Red:ver<0.0.6>:api<1> {
-    method events { Red::Class.instance.events }
-    method emit(|c) { get-RED-DB.emit: |c }
+class Red:ver<0.1.29>:api<2> {
+    our %experimentals;
+    method events   { Red::Class.instance.events }
+    method emit(|c) { get-RED-DB.emit: |c        }
+    method experimentals { %experimentals }
 }
 
 BEGIN {
@@ -40,34 +45,57 @@ my package EXPORTHOW {
     }
 }
 
-multi EXPORT("red-do") {
-    use Red::Do;
+proto experimental(Str) {*}
 
-    Map(
-        Red::Do::EXPORT::ALL::,
-        Red::Traits::EXPORT::ALL::,
-        Red::Operators::EXPORT::ALL::,
-        ‘&database’ => &database,
-    )
+multi experimental($ where "shortname") {
+    MetamodelX::Red::Model.^add_method: "experimental-name", method (\model) { model.^shortname }
+    MetamodelX::Red::Model.^compose;
+    Empty
 }
 
-multi EXPORT("experimental migrations") {
+multi experimental($ where "formaters") {
+    MetamodelX::Red::Model.^add_method: "experimental-formater", method { True }
+    Red::Column.^add_method: "experimental-formater", method { True }
+    MetamodelX::Red::Model.^compose;
+    Red::Column.^compose;
+    Empty
+}
+
+multi experimental($ where "experimental migrations" | "migrations") {
     use MetamodelX::Red::Migration;
     MetamodelX::Red::Model.^add_role: MetamodelX::Red::Migration;
     MetamodelX::Red::Model.^compose;
 
+    Empty
+}
+
+multi experimental("is-handling") {
+    multi trait_mod:<is>(Mu:U $model, :$handling) {
+        for $handling<> {
+            my ($orig, $new) = $_ ~~ Pair ?? [.key, .value] !! [$_, $_];
+            $model.^add_method: $new, method (|c) { self.^all."$orig"(|c) }
+        }
+    }
     Map(
-        Red::Traits::EXPORT::ALL::,
-        Red::Operators::EXPORT::ALL::,
-        ‘&database’ => &database,
+            '&trait_mod:<is>' => &trait_mod:<is>
     )
 }
 
-multi EXPORT {
+multi experimental("has-one") {
+    Empty
+}
+
+multi experimental($feature) { die "Experimental feature '{ $feature }' not recognized." }
+
+multi EXPORT(+@experimentals) {
+    %Red::experimentals{$_} = True for @experimentals;
     Map(
+        Red::Do::EXPORT::ALL::,
         Red::Traits::EXPORT::ALL::,
         Red::Operators::EXPORT::ALL::,
+        Red::Schema::EXPORT::ALL::,
         ‘&database’ => &database,
+        |@experimentals.map(-> $feature { |experimental( $feature ) })
     )
 }
 
@@ -77,11 +105,9 @@ multi EXPORT {
 Red
 =end head1
 
-Take a look at our Wiki: L<https://github.com/FCO/Red/wiki>
-
 Take a look at our Documentation: L<https://fco.github.io/Red/>
 
-=head2 Red - A **WiP** ORM for perl6
+=head2 Red - A **WiP** ORM for Raku
 
 =head2 INSTALL
 
@@ -92,7 +118,8 @@ Install with (you need **rakudo 2018.12-94-g495ac7c00** or **newer**):
 =head2 SYNOPSIS
 
 =begin code :lang<perl6>
-use Red;
+
+use Red:api<2>;
 
 model Person {...}
 
@@ -553,7 +580,7 @@ RETURNS:
 
 =head2 DESCRIPTION
 
-Red is a *WiP* ORM for perl6. It’s not working yet. My objective publishing is only ask for help validating the APIs.
+Red is a *WiP* ORM for Raku.
 
 =head3 traits
 
@@ -581,7 +608,7 @@ model Related { ... }
 
 # belongs to
 model MyModel {
-    has Int     $!related-id is referencing{ Related.id };
+    has Int     $!related-id is referencing( *.id, :model<Related> );
     has Related $.related    is relationship{ .id };
 }
 

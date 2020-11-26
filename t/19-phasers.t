@@ -1,11 +1,13 @@
 use Test;
 use Red;
 
-plan 32;
+plan 34;
 
 my $*RED-DEBUG          = $_ with %*ENV<RED_DEBUG>;
-my $*RED-DB             = database "SQLite", |(:database($_) with %*ENV<RED_DATABASE>);
-
+my $*RED-DEBUG-RESPONSE = $_ with %*ENV<RED_DEBUG_RESPONSE>;
+my @conf                = (%*ENV<RED_DATABASE> // "SQLite").split(" ");
+my $driver              = @conf.shift;
+my $*RED-DB             = database $driver, |%( @conf.map: { do given .split: "=" { .[0] => .[1] } } );
 
 my %call-count;
 
@@ -51,6 +53,7 @@ role TestPhasersRole {
 model TestPhasers does TestPhasersRole {
     has Int $.id is serial;
     has Str $.name is column is rw;
+    has Int $.int  is column is rw = 0;
 
     method before-create-model-public() is before-create {
         %call-count{ &?ROUTINE.name }++;
@@ -58,8 +61,9 @@ model TestPhasers does TestPhasersRole {
     method after-create-model-public() is after-create {
         %call-count{ &?ROUTINE.name }++;
     }
-    method before-update-model-public() is before-update {
+    method before-update-model-public($_) is before-update {
         %call-count{ &?ROUTINE.name }++;
+        .int++
     }
     method after-update-model-public() is after-update {
         %call-count{ &?ROUTINE.name }++;
@@ -103,6 +107,8 @@ sub call-count-ok (Str:D $phaser, Int:D $expected = 1, Str :$msg?) {
     }
 }
 
+schema(TestPhasers).drop;
+
 TestPhasers.^create-table;
 
 my $test-row = TestPhasers.^create(name => "test");
@@ -118,6 +124,10 @@ call-count-ok 'delete';
 $test-row = TestPhasers.new(name => "test two");
 $test-row.^save(:insert);
 call-count-ok 'create', 2, msg => "when using ^save(:insert)";
+
+TestPhasers.^all.map(*.name ~= "!").save;
+is TestPhasers.^all.map(*.int), (1);
+is TestPhasers.^all.map(*.name), ("test two!");
 
 done-testing;
 

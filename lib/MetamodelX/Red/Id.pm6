@@ -22,9 +22,12 @@ sub id-values-attr-build(\type, | --> Hash){
 }
 
 method set-helper-attrs(Mu \type) {
-    $!id-values-attr = Attribute.new: :name<%!___ID_VALUES___>, :package(type), :type(Hash), :!has_accessor;
-    $!id-values-attr.set_build: &id-values-attr-build;
-    type.^add_attribute: $!id-values-attr;
+    my %attr is Set = type.^attributes>>.name;
+    unless %attr<%!___ID_VALUES___> {
+            $!id-values-attr = Attribute.new: :name<%!___ID_VALUES___>, :package(type), :type(Hash), :!has_accessor;
+            $!id-values-attr.set_build: &id-values-attr-build;
+            type.^add_attribute: $!id-values-attr;
+    }
 }
 
 #| Checks if the given attribute is a primary key of the model.
@@ -81,7 +84,7 @@ multi method id-map(Red::Model $model, $id --> Hash()) {
 
 #| Returns a filter using the id
 multi method id-filter(Red::Model:D $model) {
-    $model.^general-ids.flat.map({
+    my @a = $model.^general-ids.flat.map({
         Red::AST::Eq.new:
             .column,
             ast-value
@@ -89,8 +92,10 @@ multi method id-filter(Red::Model:D $model) {
                 $!id-values-attr.get_value($model).{ .name }
                     // self.get-old-attr($model, $_)
                     // self.get-attr: $model, $_
-    })
-        .reduce: { Red::AST::AND.new: $^a, $^b }
+    });
+    @a.elems >= 2
+        ?? @a.reduce: { Red::AST::AND.new: $^a, $^b }
+        !! @a[0]
 }
 
 #| Returns a filter using the id

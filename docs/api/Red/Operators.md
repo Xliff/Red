@@ -1,6 +1,46 @@
 Red::Operators
 --------------
 
+### multi sub prefix:<-->
+
+```perl6
+multi sub prefix:<-->(
+    Red::Column $a
+) returns Mu
+```
+
+--X
+
+### multi sub prefix:<++>
+
+```perl6
+multi sub prefix:<++>(
+    Red::Column $a
+) returns Mu
+```
+
+++X
+
+### multi sub postfix:<-->
+
+```perl6
+multi sub postfix:<-->(
+    Red::Column $a
+) returns Mu
+```
+
+X--
+
+### multi sub postfix:<++>
+
+```perl6
+multi sub postfix:<++>(
+    Red::AST $a
+) returns Mu
+```
+
+X++
+
 ### multi sub prefix:<->
 
 ```perl6
@@ -20,6 +60,61 @@ multi sub prefix:<+>(
 ```
 
 +X
+
+### multi sub infix:<+>
+
+```perl6
+multi sub infix:<+>(
+    Red::AST $a,
+    Red::AST $b
+) returns Mu
+```
+
+X + Y
+
+### multi sub infix:<->
+
+```perl6
+multi sub infix:<->(
+    Red::AST $a,
+    Red::AST $b
+) returns Mu
+```
+
+X - Y
+
+### multi sub infix:<*>
+
+```perl6
+multi sub infix:<*>(
+    Red::AST $a,
+    Red::AST $b
+) returns Mu
+```
+
+X * Y
+
+### multi sub infix:</>
+
+```perl6
+multi sub infix:</>(
+    Red::AST $a,
+    Red::AST $b
+) returns Mu
+```
+
+X / Y
+
+### multi sub infix:<div>
+
+```perl6
+multi sub infix:<div>(
+    Red::AST $a,
+    Red::AST $b
+) returns Mu
+```
+
+X div Y
 
 ### multi sub infix:<==>
 
@@ -48,7 +143,7 @@ multi sub infix:<!=>(
 ```perl6
 multi sub infix:<==>(
     Red::AST $a,
-    Red::AST $b
+    Date $b is rw
 ) returns Mu
 ```
 
@@ -218,28 +313,6 @@ multi sub infix:<ge>(
 ```
 
 ge
-
-### multi sub infix:<*>
-
-```perl6
-multi sub infix:<*>(
-    Red::AST $a,
-    Red::AST $b
-) returns Mu
-```
-
-*
-
-### multi sub infix:</>
-
-```perl6
-multi sub infix:</>(
-    Red::AST $a,
-    Red::AST $b
-) returns Mu
-```
-
-/
 
 ### multi sub infix:<%>
 

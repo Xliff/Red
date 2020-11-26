@@ -1,12 +1,10 @@
 Red
 ===
 
-Take a look at our Wiki: [https://github.com/FCO/Red/wiki](https://github.com/FCO/Red/wiki)
-
 Take a look at our Documentation: [https://fco.github.io/Red/](https://fco.github.io/Red/)
 
-Red - A **WiP** ORM for perl6
------------------------------
+Red - A **WiP** ORM for Raku
+----------------------------
 
 INSTALL
 -------
@@ -19,7 +17,7 @@ SYNOPSIS
 --------
 
 ```perl6
-use Red;
+use Red:api<2>;
 
 model Person {...}
 
@@ -481,7 +479,7 @@ RETURNS:
 DESCRIPTION
 -----------
 
-Red is a *WiP* ORM for perl6. It’s not working yet. My objective publishing is only ask for help validating the APIs.
+Red is a *WiP* ORM for Raku.
 
 ### traits
 
@@ -517,7 +515,7 @@ model Related { ... }
 
 # belongs to
 model MyModel {
-    has Int     $!related-id is referencing{ Related.id };
+    has Int     $!related-id is referencing( *.id, :model<Related> );
     has Related $.related    is relationship{ .id };
 }
 

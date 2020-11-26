@@ -8,15 +8,17 @@ model Bla {
 
 my $*RED-DEBUG          = $_ with %*ENV<RED_DEBUG>;
 my $*RED-DEBUG-RESPONSE = $_ with %*ENV<RED_DEBUG_RESPONSE>;
-my $*RED-DB             = database "SQLite", |(:database($_) with %*ENV<RED_DATABASE>);
+my @conf                = (%*ENV<RED_DATABASE> // "SQLite").split(" ");
+my $driver              = @conf.shift;
+my $*RED-DB             = database $driver, |%( @conf.map: { do given .split: "=" { .[0] => .[1] } } );
 
+schema(Bla).drop;
 Bla.^create-table;
 Bla.^create: :bla<test1>;
 Bla.^create: :bla<test1>;
 Bla.^create: :bla<test2>;
 
 my %a := Bla.^all.classify({ .bla });
-say %a;
 is %a.elems, 2;
 is %a<test1>.elems, 2;
 is %a<test2>.elems, 1;
@@ -26,9 +28,11 @@ is %b<test1>.elems, 2;
 is %b<test2>.elems, 1;
 my %c := Bla.^all.map(*.bla).classify(* eq "test1");
 is %c.elems, 2;
-todo "Not yet implemented", 2;
-is %c{"1"}.elems, 2;
-is %c{"0"}.elems, 1;
+is %c.keys.Seq.sort, (0, 1);
+without %*ENV<RED_DATABASE> {
+    is %c{1}.elems, 2;
+    is %c{0}.elems, 1;
+}
 is-deeply Bla.^all.classify(*.bla).Bag, bag(<test1 test1 test2>);
 is-deeply Bla.^all.classify(*.bla).Set, set(<test1 test2>);
 is-deeply Bla.^all.map(*.bla).Bag, bag(<test1 test1 test2>);

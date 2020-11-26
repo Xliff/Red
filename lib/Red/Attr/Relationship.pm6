@@ -3,7 +3,15 @@ use Red::AST::Value;
 use Red::HiddenFromSQLCommenting;
 use X::Red::Exceptions;
 
-unit role Red::Attr::Relationship[&rel1, &rel2?, Str :$model, Str :$require = $model];
+unit role Red::Attr::Relationship[
+	&rel1,
+	&rel2?,
+	Str  :$model,
+	Str  :$require = $model,
+	Bool :$optional,
+	Bool :$no-prefetch,
+	Bool :$has-one,
+];
 has Mu:U $!type;
 
 has Bool $.has-lazy-relationship = ?$model;
@@ -12,12 +20,27 @@ has Mu:U $!relationship-model;
 
 has Bool $!loaded-model = False;
 
+has Bool $!optional = $optional;
+
+has Bool $.has-one = $has-one;
+
+has Bool $.no-prefetch = $!has-one // $no-prefetch;
+
+has Str $.rel-name is rw;
+
+
+method transfer(Mu:U $package) {
+    my $attr = Attribute.new: :$package, :$.name, :$.type;
+    $attr but Red::Attr::Relationship[&rel1, &rel2, :$model, :$require]
+}
+
 method rel {
     rel1 self.package
 }
 
-method relationship-model(--> Mu:U)  is hidden-from-sql-commenting {
-    if !$!loaded-model {
+method relationship-model(--> Mu:U) is hidden-from-sql-commenting {
+    return self.type without $model;
+    unless $!loaded-model {
         my $t = ::($model);
         if !$t && $t ~~ Failure {
             require ::($require);
@@ -26,7 +49,7 @@ method relationship-model(--> Mu:U)  is hidden-from-sql-commenting {
         $!relationship-model = $t;
         $!loaded-model = True;
     }
-    $!relationship-model;
+    $!relationship-model
 }
 
 method set-data(\instance, Mu $value) is hidden-from-sql-commenting {
@@ -45,24 +68,38 @@ method build-relationship(\instance) is hidden-from-sql-commenting {
     use nqp;
     nqp::bindattr(nqp::decont(instance), $.package, $.name, Proxy.new:
         FETCH => method () {
-            do if type ~~ Positional {
-                my $rel = rel1 rel-model;
-                X::Red::RelationshipNotColumn.new(:relationship(attr), :points-to($rel)).throw unless $rel ~~ Red::Column;
-                my $ref = $rel.ref;
-                X::Red::RelationshipNotRelated.new(:relationship(attr), :points-to($rel)).throw without $ref;
-                my $val = $ref.attr.get_value: instance;
-                my \value = ast-value $val;
-                rel-model.^rs.where: Red::AST::Eq.new: $rel, value, :bind-right
-            } else {
-                my $rel = rel1 instance.WHAT;
-                my $val = $rel.attr.get_value: instance;
-                do with $val {
+            my \ret = do if type ~~ Positional || attr.has-one {
+                rel-model.^rs.where: rel1(rel-model).map(-> $rel {
+                    X::Red::RelationshipNotColumn.new(:relationship(attr), :points-to($rel)).throw unless $rel ~~ Red::Column;
+                    my $ref = $rel.ref;
+                    X::Red::RelationshipNotRelated.new(:relationship(attr), :points-to($rel)).throw unless $ref.DEFINITE;
+                    my $val = do given $ref.attr but role :: {
+                        method package {
+                            instance.WHAT
+                        }
+                    } {
+                        instance.^get-attr: .name.substr: 2
+                    }
                     my \value = ast-value $val;
-                    rel-model.^rs.where(Red::AST::Eq.new: $rel.ref, value, :bind-right).head
-                } else {
-                    rel-model
+                    Red::AST::Eq.new: $rel, value, :bind-right
+                }).reduce: -> $left, $right {
+                    Red::AST::AND.new: $left, $right
                 }
+            } else {
+                my @models = rel1(instance.WHAT).map(-> $rel {
+                    my $val = $rel.attr.get_value: instance;
+                    do with $val {
+                        my \value = ast-value $val;
+                        Red::AST::Eq.new: $rel.ref, value, :bind-right
+                    }
+                }).grep(*.defined);
+                return rel-model unless @models;
+                rel-model.^rs.where(@models.reduce(-> $left, $right {
+                    Red::AST::AND.new: $left, $right
+                }))
             }
+	    return ret.head if type !~~ Positional || attr.has-one;
+	    ret
         },
         STORE => method ($value where type) {
             die X::Assignment::RO.new(value => attr.type) unless attr.rw;
@@ -76,13 +113,36 @@ method build-relationship(\instance) is hidden-from-sql-commenting {
     return
 }
 
-method relationship-ast is hidden-from-sql-commenting {
-    my \type = do if self.type ~~ Positional {
-        $model ?? self.relationship-model !! self.type.of
+method relationship-argument-type {
+    do if self.type ~~ Positional || self.has-one {
+        $model ?? self.relationship-model !! self.type ~~ Positional ?? self.type.of !! self.type
     } else {
         self.package
     }
-    my $col1 = rel1 type;
-    my $col2 = $col1.ref;
-    Red::AST::Eq.new: $col1, $col2
+}
+
+method relationship-ast($type = Nil) is hidden-from-sql-commenting {
+    my \type = self.relationship-argument-type;
+    my @col1 = |rel1 type;
+    @col1.map({
+        Red::AST::Eq.new: $_, .ref: $type
+    }).reduce: -> $agg, $i {
+        Red::AST::AND.new: $agg, $i
+    }
+}
+
+method join-type {
+    with $!optional {
+        return $!optional
+                ?? :left
+                !! :inner
+    }
+    do given rel1 self.relationship-argument-type {
+        when .?nullable {
+            :left
+        }
+        default {
+            :inner
+        }
+    }
 }

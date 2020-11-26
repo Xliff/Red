@@ -1,6 +1,8 @@
 use Red;
 use Test;
 
+plan :skip-all("Different driver setted ($_)") with %*ENV<RED_DATABASE>;
+
 class X::Tree::ExistsInTheSameArea is Exception {
     has Rat $.longitude;
     has Rat $.latitude;
@@ -36,9 +38,11 @@ model BestTree::Store is table<tree> {
 
 my $*RED-DEBUG          = $_ with %*ENV<RED_DEBUG>;
 my $*RED-DEBUG-RESPONSE = $_ with %*ENV<RED_DEBUG_RESPONSE>;
-my $*RED-DB             = database "SQLite", |(:database($_) with %*ENV<RED_DATABASE>);
+my @conf                = (%*ENV<RED_DATABASE> // "SQLite").split(" ");
+my $driver              = @conf.shift;
+my $*RED-DB             = database $driver, |%( @conf.map: { do given .split: "=" { .[0] => .[1] } } );
 
-lives-ok { BestTree::Store.^create-table }
+lives-ok { schema(BestTree::Store).drop.create }
 
 is BestTree::Store.all-trees, ();
 is-deeply BestTree::Store.find-tree(1.1, 2.1), Nil;

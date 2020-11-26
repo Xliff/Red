@@ -3,22 +3,23 @@ use Test;
 
 model Bla {
     has Int $.id        is serial;
-    has Int $.ble-id    is referencing(:model<Ble>, :column<id>);
-    has     $.ble       is relationship(:column<ble-id>, :model<Ble>) is rw;
+    has Int $.ble-id    is referencing(*.id, :model<Ble>);
+    has     $.ble       is relationship(*.ble-id, :model<Ble>) is rw;
 }
 
 model Ble {
-    has Int $.id    is id;
+    has Int $.id    is serial;
     has     @.bla   is relationship({ .ble-id }, :model<Bla>);
     has Int $.b     is column
 }
 
 my $*RED-DEBUG          = $_ with %*ENV<RED_DEBUG>;
 my $*RED-DEBUG-RESPONSE = $_ with %*ENV<RED_DEBUG_RESPONSE>;
-my $*RED-DB             = database "SQLite", |(:database($_) with %*ENV<RED_DATABASE>);
+my @conf                = (%*ENV<RED_DATABASE> // "SQLite").split(" ");
+my $driver              = @conf.shift;
+my $*RED-DB             = database $driver, |%( @conf.map: { do given .split: "=" { .[0] => .[1] } } );
 
-Bla.^create-table;
-Ble.^create-table;
+schema(Bla, Ble).drop.create;
 
 Ble.^create(:1b).bla.create;
 Ble.^create(:1b).bla.create;

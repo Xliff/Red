@@ -1,5 +1,8 @@
 use Test;
 
+plan :skip-all("Different driver setted ($_)") with %*ENV<RED_DATABASE>;
+
+my $*RED-FALLBACK = False;
 use-ok "Red";
 
 use Red;
@@ -183,19 +186,18 @@ given model A {} {
 #    ok .^rs.works;
 #}
 
-#todo "Fix 'no precompilation'";
-#lives-ok {
-#    class MyResultSet does Red::ResultSeq {has $.is-it-custom = True}
-#    given model C is rs-class(MyResultSet) {} {
-#        isa-ok .^rs, MyResultSet;
-#        ok .^rs.is-it-custom
-#    }
-#}
-#
-#given model D is rs-class<MyResultSet> {} {
-#    isa-ok .^rs, MyResultSet;
-#    ok .^rs.is-it-custom
-#}
+lives-ok {
+    class MyResultSet does Red::ResultSeq {has $.is-it-custom = True}
+    given model C is rs-class(MyResultSet) {} {
+        isa-ok .^rs, MyResultSet;
+        ok .^rs.is-it-custom
+    }
+}
+
+given model D is rs-class<MyResultSet> {} {
+    isa-ok .^rs, MyResultSet;
+    ok .^rs.is-it-custom
+}
 
 #`{{{
 eval-lives-ok q[
@@ -223,17 +225,11 @@ given model BlaBleBli2 is table<not_that> {} {
     is .^table, "not_that";
 }
 
-#model TestDate {
-#    has $.date is query('select now()');
-#}
-#
-#ok now < TestDate.new.date < now;
-
 model Person { ... }
 
 model Post {
     has Int     $.id        is column{ :id };
-    has Int     $.author-id is column{ :references{ Person.id } };
+    has Int     $.author-id is column{ :references{ .id }, :model-name<Person> };
     has Person  $.author    is relationship{ .author-id };
 }
 
@@ -254,14 +250,14 @@ is-deeply Post.author-id.ref, Person.id;
 
 lives-ok { Post.^all.grep: *.author.name eq "Bla" }
 
-is-deeply Post.author, Person;
+is-deeply Post.author.^table, Person.^table;
 
 
 model Person2 { ... }
 
 model Post2 {
     has Int      $.id        is column{ :id };
-    has Int      $.author-id is referencing{ Person2.id };
+    has Int      $.author-id is referencing( *.id, :model<Person2> );
     has Person2  $.author    is relationship{ .author-id };
 }
 
@@ -275,7 +271,8 @@ is-deeply Post2.author-id.ref, Person2.id;
 
 lives-ok { Post2.^all.grep: *.author.name eq "Bla" }
 
-is-deeply Post2.author, Person2;
+is Post2.author.^table, Person2.^table;
+is Post2.author.^name, "post2_author";
 
 my $alias1 = Post2.^alias;
 is $alias1.^name,                   "Post2_1";
@@ -286,7 +283,7 @@ is Post2,                           Post2.id.class;
 is $alias1.id.attr,                 Post2.id.attr;
 is $alias1.id.attr-name,            Post2.id.attr-name;
 is $alias1.id.id,                   Post2.id.id;
-cmp-ok $alias1.id.references, "===", Post2.id.references;
+is-deeply $alias1.id.references,    Post2.id.references;
 is $alias1.id.nullable,             Post2.id.nullable;
 is $alias1.id.name,                 Post2.id.name;
 
@@ -295,7 +292,7 @@ is Post2,                           Post2.author-id.class;
 
 is $alias1.author-id.attr,          Post2.author-id.attr;
 is $alias1.author-id.attr-name,     Post2.author-id.attr-name;
-cmp-ok $alias1.author-id.references, "===", Post2.author-id.references;
+is-deeply $alias1.author-id.references, Post2.author-id.references;
 is $alias1.author-id.nullable,      Post2.author-id.nullable;
 is $alias1.author-id.name,          Post2.author-id.name;
 
@@ -307,7 +304,7 @@ is Post2,                           Post2.id.class;
 is $alias2.id.attr,                 Post2.id.attr;
 is $alias2.id.attr-name,            Post2.id.attr-name;
 is $alias2.id.id,                   Post2.id.id;
-cmp-ok $alias2.id.references, "===", Post2.id.references;
+is-deeply $alias2.id.references,    Post2.id.references;
 is $alias2.id.nullable,             Post2.id.nullable;
 is $alias2.id.name,                 Post2.id.name;
 
@@ -317,14 +314,12 @@ is Post2,                           Post2.author-id.class;
 is $alias2.author-id.attr,          Post2.author-id.attr;
 is $alias2.author-id.attr-name,     Post2.author-id.attr-name;
 is $alias2.author-id.id,            Post2.author-id.id;
-cmp-ok $alias2.author-id.references, "===", Post2.author-id.references;
+is-deeply $alias2.author-id.references, Post2.author-id.references;
 is $alias2.author-id.nullable,      Post2.author-id.nullable;
 is $alias2.author-id.name,          Post2.author-id.name;
 
 is $alias1.^name,                   "Post2_1";
 is Post2.^name,                     "Post2";
-
-#is Post2.where({ .id == 42 }).query.perl, 42;
 
 is Post2.author-id.as("bla").name, "bla";
 is Post2.author-id.as("bla").attr-name, "bla";
@@ -332,25 +327,26 @@ ok not Post2.author-id.as("bla").id;
 ok Post2.author-id.as("bla").nullable;
 ok not Post2.author-id.as("bla", :!nullable).nullable;
 
-#say (Post2.id == 42).tables;
-#say (Post2.author-id == Person2.id).tables;
-#is (Post2.id == 42).tables.elems, 1;
-#is (Post2.author-id == Person2.id).tables.elems, 2;
+is (Post2.id == 42).tables.elems, 1;
+is (Post2.author-id == Person2.id).tables.elems, 2;
 
-given model { has $.a is column{ :unique }; has $.b is column; ::?CLASS.^add-unique-constraint: { .a, .b } } {
+given model {
+    has $.a is unique<a-and-b aonly-a>;
+    has $.b is unique<a-and-b>;
+} {
     is .^constraints<unique>.elems, 2;
 }
 
 isa-ok Person2.new.posts, Post2::ResultSeq;
 
-isa-ok Person2.posts, Person2::ResultSeq;
+isa-ok Person2.posts, Post2::ResultSeq;
 
 isa-ok Person2.posts.do-it, Seq;
 
-isa-ok Person2.posts.do-it.head, Person2;
+isa-ok Person2.posts.do-it.head, Post2;
 
 my $seq = Person2.posts.map: *.id;
-isa-ok $seq, Person2::ResultSeq;
+isa-ok $seq, Post2::ResultSeq;
 #isa-ok $seq.head, Int;
 is $seq.filter.perl, Person2.posts.filter.perl;
 
@@ -399,8 +395,8 @@ is-deeply Post3_2.author-id.ref, Post3_1.author-id.ref;
 
 lives-ok { Post3_2.^all.grep: *.author.name eq "Bla" }
 
-is-deeply Post3_1.author, Person3;
-is-deeply Post3_2.author, Person3;
-is-deeply Post3_1.author, Post3_2.author;
+is-deeply Post3_1.author.^table, Person3.^table;
+is-deeply Post3_2.author.^table, Person3.^table;
+is-deeply Post3_1.author.^table, Post3_2.author.^table;
 
-done-testing
+done-testing;

@@ -1,5 +1,7 @@
 use v6;
 
+plan :skip-all("Different driver setted ($_)") with %*ENV<RED_DATABASE>;
+
 # This is the same as the 04-blog.t except it exercises the
 # alternative relation trait style
 use Test;
@@ -23,10 +25,11 @@ model Person is rw {
 
 my $*RED-DEBUG          = $_ with %*ENV<RED_DEBUG>;
 my $*RED-DEBUG-RESPONSE = $_ with %*ENV<RED_DEBUG_RESPONSE>;
-my $*RED-DB             = database "SQLite", |(:database($_) with %*ENV<RED_DATABASE>);
+my @conf                = (%*ENV<RED_DATABASE> // "SQLite").split(" ");
+my $driver              = @conf.shift;
+my $*RED-DB             = database $driver, |%( @conf.map: { do given .split: "=" { .[0] => .[1] } } );
 
-lives-ok { Person.^create-table }, "create table for Person";
-lives-ok { Post.^create-table }, "create table for Post";
+lives-ok { schema(Person, Post).drop.create }, "create table for Person and Post";
 
 my $p;
 lives-ok { $p = Person.^create: :name<Fernando> }, "Create a Person";

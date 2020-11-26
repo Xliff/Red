@@ -1,4 +1,7 @@
 use Test;
+
+plan :skip-all("Different driver setted ($_)") with %*ENV<RED_DATABASE>;
+
 my $*RED-DB = database "SQLite";
 
 use-ok "Red";
@@ -23,10 +26,10 @@ is model :: { has $.a is column; has $.b is column; has $.c is column<d> }.^colu
 #}.^constraints>>.name, <a b d>;
 
 model Ble:ver<1.2.3> is table<not-ble> is nullable {
-    has $.a is referencing{ ::?CLASS.b }
-    has $.b is referencing{ ::?CLASS.c }
-    has $.c is column{:references{ ::?CLASS.a }, :name<d>}
-    has $.e is referencing{:model<Bla>, :column<column>}
+    has $.a is referencing( *.b, :model(::?CLASS.^name) );
+    has $.b is referencing( *.c, :model(::?CLASS.^name) );
+    has $.c is column{:references{ .a }, :model-name(::?CLASS.^name), :name<d>};
+    has $.e is referencing(:model<Bla>, :column<column>);
 }
 
 is-deeply Ble.^references.keys.Set, set < a b c e >;
@@ -68,7 +71,6 @@ is-deeply model :: {}.new.^id-values, ();
 is-deeply model :: { has $.id is id }.new(:42id).^id-values, (42,);
 is-deeply model :: { has $.id1 is id; has $!id2 is id = 13 }.new(:42id1).^id-values, (42, 13);
 
-todo "default-nullable returning false by default";
 ok not Bla.^default-nullable;
 ok Ble.^default-nullable;
 
@@ -143,7 +145,7 @@ ok $bla.^is-on-db;
 model Tree {
     has UInt   $!id        is id;
     has Str    $.value     is column;
-    has UInt   $!parent-id is referencing{ Tree.id };
+    has UInt   $!parent-id is referencing( *.id, :model<Tree> );
 
     has Tree   $.parent    is relationship{ .parent-id };
     has Tree   @.kids      is relationship{ .parent-id };

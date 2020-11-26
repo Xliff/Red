@@ -1,5 +1,5 @@
 {
-  "api" : "1",
+  "api" : "2",
   "auth" : "Fernando Correa de Oliveira",
   "authors" : [
     "Fernando Correa de Oliveira"
@@ -10,7 +10,7 @@
     "DB::Pg",
     "UUID"
   ],
-  "description" : "A perl6 ORM",
+  "description" : "A Raku ORM",
   "license" : "Artistic-2.0",
   "name" : "Red",
   "perl" : "6.d",
@@ -23,9 +23,11 @@
     "MetamodelX::Red::Migration" : "lib/MetamodelX/Red/Migration.pm6",
     "MetamodelX::Red::Model" : "lib/MetamodelX/Red/Model.pm6",
     "MetamodelX::Red::OnDB" : "lib/MetamodelX/Red/OnDB.pm6",
+    "MetamodelX::Red::Populatable" : "lib/MetamodelX/Red/Populatable.pm6",
     "MetamodelX::Red::Relationship" : "lib/MetamodelX/Red/Relationship.pm6",
     "Red" : "lib/Red.pm6",
     "Red::AST" : "lib/Red/AST.pm6",
+    "Red::AST::AddForeignKeyOnTable" : "lib/Red/AST/AddForeignKeyOnTable.pm6",
     "Red::AST::BeginTransaction" : "lib/Red/AST/BeginTransaction.pm6",
     "Red::AST::Case" : "lib/Red/AST/Case.pm6",
     "Red::AST::Chained" : "lib/Red/AST/Chained.pm6",
@@ -41,11 +43,16 @@
     "Red::AST::DropColumn" : "lib/Red/AST/DropColumn.pm6",
     "Red::AST::Empty" : "lib/Red/AST/Empty.pm6",
     "Red::AST::Function" : "lib/Red/AST/Function.pm6",
+    "Red::AST::Generic::Infix" : "lib/Red/AST/Generic/Infix.pm6",
+    "Red::AST::Generic::Postfix" : "lib/Red/AST/Generic/Postfix.pm6",
+    "Red::AST::Generic::Prefix" : "lib/Red/AST/Generic/Prefix.pm6",
     "Red::AST::Infix" : "lib/Red/AST/Infix.pm6",
     "Red::AST::Infixes" : "lib/Red/AST/Infixes.pm6",
     "Red::AST::Insert" : "lib/Red/AST/Insert.pm6",
     "Red::AST::Intersect" : "lib/Red/AST/Intersect.pm6",
     "Red::AST::IsDefined" : "lib/Red/AST/IsDefined.pm6",
+    "Red::AST::JsonItem" : "lib/Red/AST/JsonItem.pm6",
+    "Red::AST::JsonRemoveItem" : "lib/Red/AST/JsonRemoveItem.pm6",
     "Red::AST::LastInsertedRow" : "lib/Red/AST/LastInsertedRow.pm6",
     "Red::AST::Minus" : "lib/Red/AST/Minus.pm6",
     "Red::AST::MultiSelect" : "lib/Red/AST/MultiSelect.pm6",
@@ -66,6 +73,7 @@
     "Red::Attr::Query" : "lib/Red/Attr/Query.pm6",
     "Red::Attr::Relationship" : "lib/Red/Attr/Relationship.pm6",
     "Red::Class" : "lib/Red/Class.pm6",
+    "Red::Cli" : "lib/Red/Cli.pm6",
     "Red::Cli::Column" : "lib/Red/Cli/Column.pm6",
     "Red::Cli::Relationship" : "lib/Red/Cli/Relationship.pm6",
     "Red::Cli::Table" : "lib/Red/Cli/Table.pm6",
@@ -87,6 +95,7 @@
     "Red::Driver::SQLite::SQLiteMaster" : "lib/Red/Driver/SQLite/SQLiteMaster.pm6",
     "Red::Driver::SQLite::SchemaReader" : "lib/Red/Driver/SQLite/SchemaReader.pm6",
     "Red::Event" : "lib/Red/Event.pm6",
+    "Red::Formater" : "lib/Red/Formater.pm6",
     "Red::FromRelationship" : "lib/Red/FromRelationship.pm6",
     "Red::HiddenFromSQLCommenting" : "lib/Red/HiddenFromSQLCommenting.pm6",
     "Red::Migration::Column" : "lib/Red/Migration/Column.pm6",
@@ -95,13 +104,16 @@
     "Red::Model" : "lib/Red/Model.pm6",
     "Red::Operators" : "lib/Red/Operators.pm6",
     "Red::Phaser" : "lib/Red/Phaser.pm6",
+    "Red::PrepareCode" : "lib/Red/PrepareCode.pm6",
     "Red::ResultAssociative" : "lib/Red/ResultAssociative.pm6",
     "Red::ResultSeq" : "lib/Red/ResultSeq.pm6",
     "Red::ResultSeq::Iterator" : "lib/Red/ResultSeq/Iterator.pm6",
     "Red::ResultSeqSeq" : "lib/Red/ResultSeqSeq.pm6",
+    "Red::Schema" : "lib/Red/Schema.pm6",
     "Red::SchemaReader" : "lib/Red/SchemaReader.pm6",
     "Red::Statement" : "lib/Red/Statement.pm6",
     "Red::Traits" : "lib/Red/Traits.pm6",
+    "Red::Type::Json" : "lib/Red/Type/Json.pm6",
     "Red::Utils" : "lib/Red/Utils.pm6",
     "X::Red::Exceptions" : "lib/X/Red/Exceptions.pm6"
   },
@@ -113,6 +125,8 @@
     "map",
     "relational"
   ],
-  "test-depends" : [ ],
-  "version" : "0.0.6"
+  "test-depends" : [
+    "Test::META"
+  ],
+  "version" : "0.1.29"
 }

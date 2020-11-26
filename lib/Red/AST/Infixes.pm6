@@ -11,14 +11,16 @@ class Red::AST::AND     { ... }
 class Red::AST::OR      { ... }
 class Red::AST::Mul     { ... }
 class Red::AST::Div     { ... }
+class Red::AST::IDiv    { ... }
 class Red::AST::Mod     { ... }
 class Red::AST::Concat  { ... }
 class Red::AST::Like    { ... }
 class Red::AST::In      { ... }
 
+#| Represents a sum operation
 class Red::AST::Sum does Red::AST::Infix {
     has $.op = "+";
-    has Num $.returns;
+    has $.returns = (self.left | self.right).returns ~~ Num ?? Num !! Int;
 
     method should-set(--> Hash()) {
         self.find-column-name => self.find-value
@@ -39,9 +41,10 @@ class Red::AST::Sum does Red::AST::Infix {
     }
 }
 
+#| Represents a subtraction operation
 class Red::AST::Sub does Red::AST::Infix {
     has $.op = "-";
-    has Num $.returns;
+    has $.returns = (self.left | self.right).returns ~~ Num ?? Num !! Int;
 
     method should-set(--> Hash()) {
         self.find-column-name => self.find-value
@@ -62,6 +65,7 @@ class Red::AST::Sub does Red::AST::Infix {
     }
 }
 
+#| Represents a equality operation
 class Red::AST::Eq does Red::AST::Infix {
     has $.op = "=";
     has Bool $.returns;
@@ -89,6 +93,7 @@ class Red::AST::Eq does Red::AST::Infix {
     }
 }
 
+#| Represents a not equality operation
 class Red::AST::Ne does Red::AST::Infix {
     has $.op = "!=";
     has Bool $.returns;
@@ -102,6 +107,7 @@ class Red::AST::Ne does Red::AST::Infix {
     }
 }
 
+#| Represents a less than operation
 class Red::AST::Lt does Red::AST::Infix {
     has $.op = "<";
     has Bool $.returns;
@@ -113,6 +119,7 @@ class Red::AST::Lt does Red::AST::Infix {
     }
 }
 
+#| Represents a greater than operation
 class Red::AST::Gt does Red::AST::Infix {
     has $.op = ">";
     has Bool $.returns;
@@ -124,6 +131,7 @@ class Red::AST::Gt does Red::AST::Infix {
     }
 }
 
+#| Represents a less than equal operation
 class Red::AST::Le does Red::AST::Infix {
     has $.op = "<=";
     has Bool $.returns;
@@ -135,6 +143,7 @@ class Red::AST::Le does Red::AST::Infix {
     }
 }
 
+#| Represents a greater then equal operation
 class Red::AST::Ge does Red::AST::Infix {
     has $.op = ">=";
     has Bool $.returns;
@@ -146,6 +155,7 @@ class Red::AST::Ge does Red::AST::Infix {
     }
 }
 
+#| Represents a AND operation
 class Red::AST::AND does Red::AST::Infix {
     #also does Red::AST::Optimizer::And;
 
@@ -166,6 +176,7 @@ class Red::AST::AND does Red::AST::Infix {
     }
 
     method should-set(--> Hash()) {
+        [$.left, $.right].flatmap({ .should-set })
     }
 
     method should-validate {}
@@ -175,6 +186,7 @@ class Red::AST::AND does Red::AST::Infix {
     }
 }
 
+#| Represents a OR operation
 class Red::AST::OR does Red::AST::Infix {
     #also does Red::AST::Optimizer::OR;
     has $.op = "OR";
@@ -193,8 +205,7 @@ class Red::AST::OR does Red::AST::Infix {
         self.WHAT.bless: :$left, :$right
     }
 
-    method should-set(--> Hash()) {
-    }
+    method should-set(--> Hash()) {}
 
     method should-validate {}
 
@@ -203,9 +214,10 @@ class Red::AST::OR does Red::AST::Infix {
     }
 }
 
+#| Represents a multiplication operation
 class Red::AST::Mul does Red::AST::Infix {
     has $.op = "*";
-    has Num $.returns;
+    has $.returns = (self.left | self.right).returns ~~ Num ?? Num !! Int;
 
     method should-set(--> Hash()) {
         self.find-column-name => self.find-value
@@ -226,6 +238,7 @@ class Red::AST::Mul does Red::AST::Infix {
     }
 }
 
+#| Represents a division operation
 class Red::AST::Div does Red::AST::Infix {
     has $.op = "/";
     has Num $.returns;
@@ -249,6 +262,32 @@ class Red::AST::Div does Red::AST::Infix {
     }
 }
 
+
+#| Represents a division operation
+class Red::AST::IDiv does Red::AST::Infix {
+    has $.op = "/";
+    has Int $.returns;
+
+    method should-set(--> Hash()) {
+        self.find-column-name => self.find-value
+    }
+
+    method should-validate {}
+
+    method find-column-name {
+        gather for self.args {
+            .take for .?find-column-name
+        }
+    }
+
+    method find-value {
+        for self.args {
+            .return with .?find-value
+        }
+    }
+}
+
+#| Represents a module operation
 class Red::AST::Mod does Red::AST::Infix {
     has $.op = "%";
     has Int $.returns;
@@ -272,12 +311,12 @@ class Red::AST::Mod does Red::AST::Infix {
     }
 }
 
+#| Represents a concatenation operation
 class Red::AST::Concat does Red::AST::Infix {
-    has $.op = "~";
+    has $.op = "||";
     has Str $.returns;
 
-    method should-set(--> Hash()) {
-    }
+    method should-set(--> Hash()) {}
 
     method should-validate {}
 
@@ -285,24 +324,24 @@ class Red::AST::Concat does Red::AST::Infix {
     multi method new(Red::AST::Value $ where .value eq "", Red::AST $right, *%) { $right }
 }
 
+#| Represents a like operation
 class Red::AST::Like does Red::AST::Infix {
     has $.op = "like";
     has Str $.returns;
 
-    method should-set(--> Hash()) {
-    }
+    method should-set(--> Hash()) {}
 
     method should-validate {}
 
     multi method new(Red::AST $left, Red::AST::Value $ where .value eq "",  *%) { $left }
 }
 
+#| Represents a not in operation
 class Red::AST::NotIn does Red::AST::Infix {
     has $.op = "NOT IN";
     has Str $.returns;
 
-    method should-set(--> Hash()) {
-    }
+    method should-set(--> Hash()) {}
 
     method should-validate {}
 
@@ -311,12 +350,12 @@ class Red::AST::NotIn does Red::AST::Infix {
     }
 }
 
+#| Represents a in operation
 class Red::AST::In does Red::AST::Infix {
     has $.op = "IN";
     has Str $.returns;
 
-    method should-set(--> Hash()) {
-    }
+    method should-set(--> Hash()) {}
 
     method should-validate {}
 

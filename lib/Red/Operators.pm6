@@ -8,6 +8,31 @@ use Red::ResultSeq;
 
 unit module Red::Operators;
 
+# TODO: Diferenciate prefix and postfix
+#| --X
+multi prefix:<-->(Red::Column $a) is export {
+    @*UPDATE.push: $a => Red::AST::Sub.new: $a, ast-value 1;
+    $a
+}
+
+#| ++X
+multi prefix:<++>(Red::Column $a) is export {
+    @*UPDATE.push: $a => Red::AST::Sum.new: $a, ast-value 1;
+    $a
+}
+
+#| X--
+multi postfix:<-->(Red::Column $a) is export {
+    @*UPDATE.push: $a => Red::AST::Sub.new: $a, ast-value 1;
+    $a
+}
+
+#| X++
+multi postfix:<++>(Red::AST $a) is export {
+    @*UPDATE.push: $a => Red::AST::Sum.new: $a, ast-value 1;
+    $a
+}
+
 #| -X
 multi prefix:<->(Red::AST $a) is export {
     Red::AST::Mul.new: ast-value(-1), $a
@@ -62,12 +87,42 @@ multi infix:</>(Red::AST $a, Red::AST $b) is export {
     Red::AST::Div.new: $a, $b
 }
 
-multi infix:</>(Red::AST $a, Numeric() $b) is export {
+multi infix:</>(Red::AST $a, Numeric() $b is readonly) is export {
     Red::AST::Div.new: $a, ast-value $b
 }
 
-multi infix:</>(Numeric() $a, Red::AST $b) is export {
+multi infix:</>(Numeric() $a is readonly, Red::AST $b) is export {
     Red::AST::Div.new: ast-value($a), $b
+}
+
+multi infix:</>(Red::AST $a, Numeric() $b is rw) is export {
+    Red::AST::Div.new: $a, ast-value($b), :bind-right
+}
+
+multi infix:</>(Numeric() $a is rw, Red::AST $b) is export {
+    Red::AST::Div.new: ast-value($a), $b, :bind-left
+}
+
+
+#| X div Y
+multi infix:<div>(Red::AST $a, Red::AST $b) is export {
+    Red::AST::IDiv.new: $a, $b
+}
+
+multi infix:<div>(Red::AST $a, Numeric() $b is readonly) is export {
+    Red::AST::IDiv.new: $a, ast-value $b
+}
+
+multi infix:<div>(Numeric() $a is readonly, Red::AST $b) is export {
+    Red::AST::IDiv.new: ast-value($a), $b
+}
+
+multi infix:<div>(Red::AST $a, Numeric() $b is rw) is export {
+    Red::AST::IDiv.new: $a, ast-value($b), :bind-right
+}
+
+multi infix:<div>(Numeric() $a is rw, Red::AST $b) is export {
+    Red::AST::IDiv.new: ast-value($a), $b, :bind-left
 }
 
 #| ==
@@ -105,9 +160,9 @@ multi infix:<!=>(Numeric() $a is readonly, Red::AST $b) is export {
 }
 
 #| ==
-multi infix:<==>(Red::AST $a, Red::AST $b) is export {
-    Red::AST::Eq.new: $a, $b, :cast<num>
-}
+#multi infix:<==>(Red::AST $a, Red::AST $b) is export {
+#    Red::AST::Eq.new: $a, $b, :cast<num>
+#}
 multi infix:<==>(Red::AST $a, Date $b is rw) is export {
     Red::AST::Eq.new: $a, ast-value($b), :cast<num>, :bind-right
 }
@@ -422,8 +477,11 @@ multi infix:<~>(Str() $a is readonly, Red::AST $b) is export {
 }
 
 #| not X
-multi prefix:<not>(Red::AST $a) is export {
+multi prefix:<not>(Red::AST $a is readonly) is export {
     Red::AST::Not.new: $a
+}
+multi prefix:<not>(Red::AST $a is rw) is export {
+    Red::AST::Not.new: $a, :bind
 }
 
 multi prefix:<!>(Red::AST $a) is export {

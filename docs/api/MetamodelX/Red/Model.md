@@ -185,17 +185,6 @@ multi method add-pk-constraint(
 
 Creates the primary key constraint.
 
-### method alias
-
-```perl6
-method alias(
-    Red::Model:U \type,
-    Str $name = { ... }
-) returns Mu
-```
-
-Creates a new alias for the model.
-
 ### method add-column
 
 ```perl6
@@ -207,20 +196,20 @@ method add-column(
 
 Creates a new column and adds it to the model.
 
-### method rs
+### multi method rs
 
 ```perl6
-method rs(
-    $
+multi method rs(
+    Mu:U $
 ) returns Red::ResultSeq
 ```
 
 Returns the ResultSeq
 
-### method all
+### multi method all
 
 ```perl6
-method all(
+multi method all(
     $obj
 ) returns Red::ResultSeq
 ```
@@ -242,7 +231,8 @@ Sets model as a temporary table
 ```perl6
 multi method create-table(
     \model,
-    Bool :unless-exists(:$if-not-exists) where { ... }
+    Bool :unless-exists(:$if-not-exists) where { ... },
+    *%pars
 ) returns Mu
 ```
 
@@ -252,7 +242,9 @@ Creates table unless table already exists
 
 ```perl6
 multi method create-table(
-    \model
+    \model,
+    :$with where { ... },
+    :if-not-exists($unless-exists) where { ... }
 ) returns Mu
 ```
 
@@ -275,7 +267,8 @@ Applies phasers
 multi method save(
     $obj,
     Bool :$insert! where { ... },
-    Bool :$from-create
+    Bool :$from-create,
+    :$with where { ... }
 ) returns Mu
 ```
 
@@ -286,7 +279,8 @@ Saves that object on database (create a new row)
 ```perl6
 multi method save(
     $obj,
-    Bool :$update! where { ... }
+    Bool :$update! where { ... },
+    :$with where { ... }
 ) returns Mu
 ```
 
@@ -296,37 +290,40 @@ Saves that object on database (update the row)
 
 ```perl6
 multi method save(
-    $obj
+    $obj,
+    :$with where { ... }
 ) returns Mu
 ```
 
 Generic save, calls C<.^save: :insert> if C<.^is-on-db> or C<.^save: :update> otherwise
 
-### method create
+### multi method create
 
 ```perl6
-method create(
+multi method create(
     \model,
-    *%orig-pars
+    *%orig-pars,
+    :$with where { ... }
 ) returns Mu
 ```
 
 Creates a new object and saves it on DB It accepts a list os pairs (the same as C<.new>) And Lists and/or Hashes for relationships
 
-### method delete
+### multi method delete
 
 ```perl6
-method delete(
-    \model
+multi method delete(
+    \model,
+    :$with where { ... }
 ) returns Mu
 ```
 
 Deletes row from database
 
-### method load
+### multi method load
 
 ```perl6
-method load(
+multi method load(
     Red::Model:U \model,
     |ids is raw
 ) returns Mu
@@ -339,7 +336,8 @@ Loads object from the DB
 ```perl6
 multi method new-with-id(
     Red::Model:U \model,
-    %ids
+    %ids,
+    :$with where { ... }
 ) returns Mu
 ```
 
@@ -361,7 +359,8 @@ Creates a new object setting the id
 ```perl6
 multi method search(
     Red::Model:U \model,
-    &filter
+    &filter,
+    :$with where { ... }
 ) returns Mu
 ```
 
@@ -372,7 +371,8 @@ Receives a `Block` of code and returns a `ResultSeq` using the `Block`'s return 
 ```perl6
 multi method search(
     Red::Model:U \model,
-    Red::AST $filter
+    Red::AST $filter,
+    :$with where { ... }
 ) returns Mu
 ```
 
@@ -383,16 +383,17 @@ Receives a `AST` of code and returns a `ResultSeq` using that `AST` as filter
 ```perl6
 multi method search(
     Red::Model:U \model,
-    *%filter
+    *%filter,
+    :$with where { ... }
 ) returns Mu
 ```
 
 Receives a hash of `AST`s of code and returns a `ResultSeq` using that `AST`s as filter
 
-### method find
+### multi method find
 
 ```perl6
-method find(
+multi method find(
     |c is raw
 ) returns Mu
 ```
