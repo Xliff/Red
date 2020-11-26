@@ -72,18 +72,7 @@ method sort(
 ) returns Red::ResultSeq
 ```
 
-Defines the order of the query (does not run the query). To sort in descending order, 
-prefix the column value with a minus sign. Example:
-
-model A {
-  has Int $.value
-}
-
-# Ascending (ASC)
-A.^all.sort( *.value )
-
-# Descending (DESC)
-A.^all.sort( -*.value )
+Defines the order of the query (does not run the query)
 
 ### method pick
 
